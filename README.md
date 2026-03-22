@@ -113,6 +113,38 @@ ASR Provider 架构设计为可插拔：每个云厂商实现 `ASRProviderConfig
 - 有好想法？[开 Discussion](../../discussions)
 - 想改代码？直接 Fork & PR
 
+## For AI Agents
+
+If you're an AI agent (Claude, Cursor, Copilot, etc.) tasked with building or deploying Type4Me, here's what you need to know:
+
+**Read these files first:**
+
+1. `CLAUDE.md` - architecture overview, credential storage, key files, and how to add new ASR providers
+2. `Package.swift` - project dependencies and build targets
+3. `scripts/deploy.sh` - the build & deploy pipeline
+
+**Build & deploy steps:**
+
+```bash
+# 1. Clone
+git clone https://github.com/joewongjc/type4me.git && cd type4me
+
+# 2. Build
+swift build -c release
+
+# 3. Deploy as .app (creates bundle, signs, and launches)
+bash scripts/deploy.sh
+```
+
+**Key things to know:**
+
+- This is a Swift Package Manager project, no `.xcodeproj` needed
+- Zero third-party dependencies, everything is built on Apple frameworks (AVFoundation, SwiftUI, AppKit)
+- Credentials are stored locally at `~/Library/Application Support/Type4Me/credentials.json`, never in code or environment variables
+- The ASR provider architecture is plugin-based: see `Type4Me/ASR/ASRProviderRegistry.swift` for the registry and `Type4Me/ASR/Providers/` for per-vendor configs
+- Currently only Volcengine (Doubao) ASR is implemented; other providers have config stubs but no client implementation yet
+- To add a new ASR provider, implement `ASRProviderConfig` + `SpeechRecognizer` protocol and register in `ASRProviderRegistry.all`
+
 ## 许可证
 
 [MIT License](LICENSE)
