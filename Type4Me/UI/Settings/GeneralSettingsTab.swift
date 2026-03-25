@@ -218,11 +218,13 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
                 .foregroundStyle(TF.settingsTextTertiary)
                 .padding(.bottom, 6)
             asrProviderPicker
-            Text(asrCapabilitySummary)
-                .font(.system(size: 11))
-                .foregroundStyle(TF.settingsTextTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 2)
+            if isASRProviderAvailable {
+                Text(asrCapabilitySummary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(TF.settingsTextTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+            }
             SettingsDivider()
 
             if selectedASRProvider.isLocal {
