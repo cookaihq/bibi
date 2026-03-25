@@ -353,41 +353,7 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
         VStack(spacing: 0) {
             if !isASRProviderAvailable {
                 // SherpaOnnx framework not compiled — guide user
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L(
-                        "本地识别需要先编译 SherpaOnnx 引擎。请在终端执行以下命令后重新构建 app:",
-                        "Local ASR requires building the SherpaOnnx engine first. Run the following in terminal, then rebuild:"
-                    ))
-                    .font(.system(size: 12))
-                    .foregroundStyle(TF.settingsTextSecondary)
-
-                    HStack(spacing: 6) {
-                        Text("bash scripts/build-sherpa.sh && bash scripts/deploy.sh")
-                            .font(.system(size: 11, design: .monospaced))
-                            .textSelection(.enabled)
-                        Spacer()
-                        Button {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("bash scripts/build-sherpa.sh && bash scripts/deploy.sh", forType: .string)
-                        } label: {
-                            Image(systemName: "doc.on.doc")
-                                .font(.system(size: 10))
-                                .foregroundStyle(TF.settingsTextTertiary)
-                        }
-                        .buttonStyle(.plain)
-                        .help(L("复制命令", "Copy command"))
-                    }
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(TF.settingsBg.opacity(0.5)))
-
-                    Link(
-                        L("查看完整说明 →", "View full instructions →"),
-                        destination: URL(string: "https://github.com/joewongjc/type4me#从源码构建")!
-                    )
-                    .font(.system(size: 12, weight: .medium))
-                }
-                .padding(.vertical, 8)
+                localASRBuildGuide
             } else {
                 ForEach(Array(ModelManager.StreamingModel.allCases.enumerated()), id: \.element) { index, model in
                     if index > 0 { SettingsDivider() }
@@ -570,6 +536,46 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
                 asrTestStatus = .idle
             }
         }
+    }
+
+    private static let sherpaSetupCmd = "bash scripts/build-sherpa.sh && bash scripts/deploy.sh"
+
+    private var localASRBuildGuide: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L(
+                "本地识别需要先编译 SherpaOnnx 引擎。\n在项目文件夹上右键选择「在终端中打开」，然后执行以下命令:",
+                "Local ASR requires building the SherpaOnnx engine.\nRight-click the project folder and select 'Open in Terminal', then run:"
+            ))
+            .font(.system(size: 12))
+            .foregroundStyle(TF.settingsTextSecondary)
+
+            HStack(spacing: 6) {
+                Text(Self.sherpaSetupCmd)
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+                Spacer()
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(Self.sherpaSetupCmd, forType: .string)
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 10))
+                        .foregroundStyle(TF.settingsTextTertiary)
+                }
+                .buttonStyle(.plain)
+                .help(L("复制命令", "Copy command"))
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 6).fill(TF.settingsBg.opacity(0.5)))
+
+            Link(
+                L("查看完整说明 →", "View full instructions →"),
+                destination: URL(string: "https://github.com/joewongjc/type4me#从源码构建")!
+            )
+            .font(.system(size: 12, weight: .medium))
+        }
+        .padding(.vertical, 8)
     }
 
     private func testLocalModel() {
