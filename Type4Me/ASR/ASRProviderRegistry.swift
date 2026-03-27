@@ -52,6 +52,11 @@ enum ASRProviderRegistry {
                 createClient: { BailianASRClient() },
                 capabilities: .streaming
             ),
+            .baidu: ProviderEntry(
+                configType: BaiduASRConfig.self,
+                createClient: { BaiduASRClient() },
+                capabilities: .streaming
+            ),
             .openai: ProviderEntry(
                 configType: OpenAIASRConfig.self,
                 createClient: { OpenAIASRClient() },
