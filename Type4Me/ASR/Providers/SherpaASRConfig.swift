@@ -3,7 +3,7 @@ import Foundation
 struct SherpaASRConfig: ASRProviderConfig, Sendable {
 
     static let provider = ASRProvider.sherpa
-    static var displayName: String { L("本地识别 (Paraformer)", "Local (Paraformer)") }
+    static var displayName: String { L("本地识别 (SenseVoice)", "Local (SenseVoice)") }
 
     static var credentialFields: [CredentialField] { [] }
 

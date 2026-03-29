@@ -305,12 +305,7 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
     @State private var volcResourceHint: String?
 
     // Local model states
-    @State private var selectedStreamingModel: ModelManager.StreamingModel = ModelManager.selectedStreamingModel
-    @State private var modelDownloadStatus: [ModelManager.StreamingModel: Bool] = [:]
-    @State private var downloadingModel: ModelManager.StreamingModel? = nil
-    @State private var downloadProgress: Double = 0
-    @State private var downloadTask: Task<Void, Error>? = nil
-    @State private var confirmingDelete: ModelManager.StreamingModel? = nil
+    @State private var localModelAvailable: Bool = ModelManager.isSenseVoiceBundled
 
     private var currentASRFields: [CredentialField] {
         ASRProviderRegistry.configType(for: selectedASRProvider)?.credentialFields ?? []
@@ -455,7 +450,7 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
                         .filter { $0.isLocal || (ASRProviderRegistry.entry(for: $0)?.isAvailable ?? false) }
                         .map { ($0.rawValue, $0.displayName) }
                 )
-                if selectedASRProvider.isLocal && (modelDownloadStatus[selectedStreamingModel] ?? false) {
+                if selectedASRProvider.isLocal && localModelAvailable {
                     testButton(L("测试模型", "Test Model"), status: asrTestStatus) { testLocalModel() }
                 }
             }
@@ -463,10 +458,6 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
         .padding(.vertical, 6)
         .onChange(of: selectedASRProvider) { oldProvider, newProvider in
             testTask?.cancel()
-            downloadTask?.cancel()
-            downloadTask = nil
-            downloadingModel = nil
-            downloadProgress = 0
             asrTestStatus = .idle
             isEditingASR = true
             // Persist provider switch immediately (don't require a separate "save")
@@ -477,8 +468,8 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
             if oldProvider == .sherpa && newProvider != .sherpa {
                 Task { await SenseVoiceServerManager.shared.stop() }
             }
-            // Start SenseVoice server when switching to sherpa with SenseVoice model
-            if newProvider == .sherpa && ModelManager.selectedStreamingModel == .senseVoiceSmall {
+            // Start SenseVoice server when switching to sherpa
+            if newProvider == .sherpa {
                 Task { try? await SenseVoiceServerManager.shared.start() }
             }
         }
@@ -548,217 +539,47 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
     // MARK: - Local Model Section
 
     private var localModelSection: some View {
-        VStack(spacing: 0) {
-            if !isASRProviderAvailable {
-                // SherpaOnnx framework not compiled — guide user
-                localASRBuildGuide
-            } else {
-                ForEach(Array(ModelManager.StreamingModel.allCases.enumerated()), id: \.element) { index, model in
-                    if index > 0 { SettingsDivider() }
-                    modelRow(model)
-                }
-            }
-        }
-    }
-
-    private func modelRow(_ model: ModelManager.StreamingModel) -> some View {
-        let isDownloaded = modelDownloadStatus[model] ?? false
-        let isSelected = selectedStreamingModel == model
-        let isDownloading = downloadingModel == model
-
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 8) {
-                if isDownloaded || isDownloading {
-                    // Radio button — only for downloaded/downloading models
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 14))
-                        .foregroundStyle(isSelected ? TF.settingsAccentGreen : TF.settingsTextTertiary)
-                        .onTapGesture {
-                            guard isDownloaded else { return }
-                            let oldModel = selectedStreamingModel
-                            selectedStreamingModel = model
-                            ModelManager.selectedStreamingModel = model
-                            asrTestStatus = .idle
-                            let defaults = ["modelDir": ModelManager.defaultModelsDir]
-                            try? KeychainService.saveASRCredentials(for: .sherpa, values: defaults)
-                            KeychainService.selectedASRProvider = .sherpa
-                            // Manage SenseVoice server lifecycle on model switch
-                            if model != oldModel {
-                                Task {
-                                    if model == .senseVoiceSmall {
-                                        try? await SenseVoiceServerManager.shared.start()
-                                    } else {
-                                        await SenseVoiceServerManager.shared.stop()
-                                    }
-                                }
-                            }
-                        }
-                } else {
-                    // Not downloaded: download button on the left
-                    Button(L("下载", "Download")) { startDownload(model) }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .background(RoundedRectangle(cornerRadius: 5).fill(TF.settingsAccentAmber))
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(model.displayName)
+        VStack(alignment: .leading, spacing: 8) {
+            if ModelManager.isSenseVoiceBundled {
+                // Full version: model is bundled
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(TF.settingsAccentGreen)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SenseVoice")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(isDownloaded ? TF.settingsText : TF.settingsTextTertiary)
-                        Text("~\(model.approximateSizeMB) MB")
+                            .foregroundStyle(TF.settingsText)
+                        Text(L("阿里开源语音模型，支持中英粤日韩，自动标点，流式识别",
+                               "Alibaba open-source ASR, zh/en/yue/ja/ko, auto punctuation, streaming"))
                             .font(.system(size: 10))
-                            .foregroundStyle(TF.settingsTextTertiary)
+                            .foregroundStyle(TF.settingsTextSecondary)
                     }
-                    Text(model.description)
+                }
+            } else {
+                // Lite version: no model bundled, show download link
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(TF.settingsAccentAmber)
+                        Text(L("本地识别需要下载完整版", "Local ASR requires the full version"))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(TF.settingsText)
+                    }
+                    Text(L("当前为云端识别版本，本地识别需要下载内嵌模型的完整版 DMG。",
+                           "This is the cloud-only version. Download the full DMG with embedded model for local ASR."))
                         .font(.system(size: 10))
                         .foregroundStyle(TF.settingsTextSecondary)
-                        .lineLimit(2)
+                    Link(L("前往下载完整版", "Download Full Version"),
+                         destination: URL(string: "https://github.com/joewongjc/type4me/releases")!)
+                        .font(.system(size: 11, weight: .medium))
                 }
-
-                Spacer()
-
-                // Action area (only for downloaded models)
-                if isDownloaded {
-                    HStack(spacing: 6) {
-                        if confirmingDelete == model {
-                            Button(L("确认删除", "Confirm")) { deleteModel(model) }
-                                .buttonStyle(.plain)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 4).fill(TF.settingsAccentRed))
-                            Button(L("取消", "Cancel")) { confirmingDelete = nil }
-                                .buttonStyle(.plain)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(TF.settingsTextSecondary)
-                        } else {
-                            Button {
-                                confirmingDelete = model
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(TF.settingsTextTertiary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
-            // Download progress
-            if isDownloading {
-                HStack(spacing: 8) {
-                    ProgressView(value: downloadProgress)
-                        .tint(TF.settingsAccentAmber)
-                    Text("\(Int(downloadProgress * 100))%")
-                        .font(.system(size: 10, weight: .medium).monospacedDigit())
-                        .foregroundStyle(TF.settingsTextSecondary)
-                        .frame(width: 30, alignment: .trailing)
-                    Button(L("取消", "Cancel")) { cancelDownload() }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(TF.settingsTextSecondary)
-                }
-                .padding(.leading, 22)
             }
         }
         .padding(.vertical, 8)
     }
 
     private func refreshModelStatus() {
-        for model in ModelManager.StreamingModel.allCases {
-            modelDownloadStatus[model] = ModelManager.shared.isModelAvailable(model)
-        }
-        selectedStreamingModel = ModelManager.selectedStreamingModel
-    }
-
-    private func startDownload(_ model: ModelManager.StreamingModel) {
-        // Cancel any existing download first
-        if downloadingModel != nil {
-            cancelDownload()
-        }
-        downloadingModel = model
-        downloadProgress = 0
-        asrTestStatus = .idle
-        downloadTask = Task {
-            do {
-                try await ModelManager.shared.downloadModel(model) { progress in
-                    Task { @MainActor in
-                        // Only update if this model is still the one being downloaded
-                        guard self.downloadingModel == model else { return }
-                        self.downloadProgress = progress
-                    }
-                }
-                await MainActor.run {
-                    guard downloadingModel == model else { return }
-                    downloadingModel = nil
-                    refreshModelStatus()
-                    // Auto-select if first download
-                    if modelDownloadStatus.values.filter({ $0 }).count == 1 {
-                        selectedStreamingModel = model
-                        ModelManager.selectedStreamingModel = model
-                        let defaults = ["modelDir": ModelManager.defaultModelsDir]
-                        try? KeychainService.saveASRCredentials(for: .sherpa, values: defaults)
-                        KeychainService.selectedASRProvider = .sherpa
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    guard downloadingModel == model else { return }
-                    downloadingModel = nil
-                    if !Task.isCancelled {
-                        asrTestStatus = .failed(L("下载失败", "Download failed"))
-                    }
-                }
-            }
-        }
-    }
-
-    private func cancelDownload() {
-        guard let model = downloadingModel else { return }
-        downloadTask?.cancel()
-        downloadTask = nil
-        downloadingModel = nil
-        Task { await ModelManager.shared.cancelDownload(model) }
-    }
-
-    private func deleteModel(_ model: ModelManager.StreamingModel) {
-        Task {
-            try? await ModelManager.shared.deleteModel(model)
-            await MainActor.run {
-                confirmingDelete = nil
-                modelDownloadStatus[model] = false
-                if selectedStreamingModel == model {
-                    // Select another downloaded model, or keep current
-                    if let alt = ModelManager.StreamingModel.allCases.first(where: {
-                        modelDownloadStatus[$0] == true
-                    }) {
-                        selectedStreamingModel = alt
-                        ModelManager.selectedStreamingModel = alt
-                    }
-                }
-                asrTestStatus = .idle
-            }
-        }
-    }
-
-    private var localASRBuildGuide: some View {
-        HStack(spacing: 4) {
-            Text(L("本地暂未部署识别引擎，请查看", "Local ASR engine not deployed. See"))
-                .font(.system(size: 12))
-                .foregroundStyle(TF.settingsTextSecondary)
-            Link(
-                L("GitHub 详细指引", "GitHub instructions"),
-                destination: URL(string: "https://github.com/joewongjc/type4me#方式二从源码构建")!
-            )
-            .font(.system(size: 12, weight: .medium))
-        }
-        .padding(.vertical, 8)
+        localModelAvailable = ModelManager.isSenseVoiceBundled
     }
 
     private func testLocalModel() {
@@ -773,7 +594,7 @@ struct ASRSettingsCard: View, SettingsCardHelpers {
                     asrTestStatus = .failed(L("配置错误", "Config error"))
                     return
                 }
-                let client = SherpaASRClient()
+                let client = SenseVoiceWSClient()
                 try await client.connect(config: config, options: currentASRRequestOptions(enablePunc: false))
                 await client.disconnect()
                 guard !Task.isCancelled else { return }
@@ -1509,21 +1330,21 @@ struct GeneralSettingsTab: View, SettingsCardHelpers {
 
     private var preserveClipboardRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(L("保留剪贴板", "Preserve Clipboard").uppercased())
+            Text(L("注入剪贴板", "Copy to Clipboard").uppercased())
                 .font(.system(size: 10, weight: .semibold))
                 .tracking(0.8)
                 .foregroundStyle(TF.settingsTextTertiary)
             settingsDropdown(
                 selection: Binding(
-                    get: { preserveClipboard ? "on" : "off" },
-                    set: { preserveClipboard = $0 == "on" }
+                    get: { preserveClipboard ? "off" : "on" },
+                    set: { preserveClipboard = $0 != "on" }
                 ),
                 options: [
                     ("on", L("开启", "On")),
                     ("off", L("关闭", "Off")),
                 ]
             )
-            Text(L("输入后恢复剪贴板原有内容", "Restore clipboard contents after voice input"))
+            Text(L("开启后识别文本始终写入剪贴板", "When on, recognized text is always copied to clipboard"))
                 .font(.system(size: 10))
                 .foregroundStyle(TF.settingsTextTertiary)
                 .lineSpacing(2)

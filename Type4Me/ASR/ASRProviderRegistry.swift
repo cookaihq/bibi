@@ -78,14 +78,7 @@ enum ASRProviderRegistry {
         #if HAS_SHERPA_ONNX
         dict[.sherpa] = ProviderEntry(
             configType: SherpaASRConfig.self,
-            createClient: {
-                switch ModelManager.selectedStreamingModel.architecture {
-                case .senseVoice:
-                    return SenseVoiceWSClient()
-                case .paraformer:
-                    return SherpaASRClient()
-                }
-            },
+            createClient: { SenseVoiceWSClient() },
             capabilities: .streaming
         )
         #else

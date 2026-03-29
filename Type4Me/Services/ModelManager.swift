@@ -22,49 +22,22 @@ actor ModelManager {
 
     private var modelsDir: String { Self.defaultModelsDir }
 
-    // MARK: - Model Architecture
-
-    enum ModelArchitecture: String, Sendable {
-        case paraformer
-        case senseVoice
-    }
-
     // MARK: - Streaming Model Variants
 
     enum StreamingModel: String, CaseIterable, Sendable {
-        case senseVoiceSmall     = "sensevoice-small"
-        case paraformerBilingual = "paraformer-bilingual"
+        case senseVoiceSmall = "sensevoice-small"
 
         var displayName: String {
-            switch self {
-            case .senseVoiceSmall:    return L("SenseVoice 智能识别", "SenseVoice Smart")
-            case .paraformerBilingual: return L("Paraformer 中英双语", "Paraformer Bilingual")
-            }
+            return L("SenseVoice 智能识别", "SenseVoice Smart")
         }
 
         var description: String {
-            switch self {
-            case .senseVoiceSmall:
-                return L("阿里最新模型，中文准确率最高，支持中英粤日韩",
-                         "Alibaba's latest, best Chinese accuracy, zh/en/yue/ja/ko")
-            case .paraformerBilingual:
-                return L("流式识别，逐字显示，支持中英文混合",
-                         "Streaming recognition, word-by-word display, Chinese + English")
-            }
-        }
-
-        var architecture: ModelArchitecture {
-            switch self {
-            case .senseVoiceSmall:    return .senseVoice
-            case .paraformerBilingual: return .paraformer
-            }
+            return L("阿里最新模型，中文准确率最高，支持中英粤日韩",
+                     "Alibaba's latest, best Chinese accuracy, zh/en/yue/ja/ko")
         }
 
         var directoryName: String {
-            switch self {
-            case .senseVoiceSmall:    return "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
-            case .paraformerBilingual: return "sherpa-onnx-streaming-paraformer-bilingual-zh-en"
-            }
+            return "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
         }
 
         var downloadURL: URL {
@@ -73,27 +46,35 @@ actor ModelManager {
         }
 
         var requiredFiles: [String] {
-            switch self {
-            case .senseVoiceSmall:    return ["model.int8.onnx", "tokens.txt"]
-            case .paraformerBilingual: return ["encoder.int8.onnx", "decoder.int8.onnx", "tokens.txt"]
-            }
+            return ["model.int8.onnx", "tokens.txt"]
         }
 
         /// The primary model file used by the recognizer.
         var modelFileName: String {
-            switch self {
-            case .senseVoiceSmall:    return "model.int8.onnx"
-            case .paraformerBilingual: return "encoder.int8.onnx"
-            }
+            return "model.int8.onnx"
         }
 
         /// Approximate download size in MB for UI display.
         var approximateSizeMB: Int {
-            switch self {
-            case .senseVoiceSmall:    return 228
-            case .paraformerBilingual: return 1000
-            }
+            return 228
         }
+    }
+
+    // MARK: - SenseVoice Availability
+
+    /// Whether the SenseVoice model is bundled in the app (full DMG version).
+    nonisolated static var isSenseVoiceBundled: Bool {
+        // Check if sensevoice-server exists in app bundle
+        if let bundled = Bundle.main.executableURL?
+            .deletingLastPathComponent()
+            .appendingPathComponent("sensevoice-server"),
+           FileManager.default.fileExists(atPath: bundled.path) {
+            return true
+        }
+        // Dev mode: check if sensevoice-server dir exists in project
+        let home = NSHomeDirectory()
+        let devPath = (home as NSString).appendingPathComponent("projects/type4me/sensevoice-server/server.py")
+        return FileManager.default.fileExists(atPath: devPath)
     }
 
     // MARK: - Auxiliary Model Types (punctuation, offline, etc.)
@@ -147,9 +128,9 @@ actor ModelManager {
 
     private static let selectedModelKey = "tf_selectedStreamingModel"
 
-    /// Raw values of removed Zipformer models — migrate to senseVoiceSmall.
+    /// Raw values of removed models — migrate to senseVoiceSmall.
     private static let removedModelRawValues: Set<String> = [
-        "zipformer-small-ctc", "zipformer-ctc-multi"
+        "zipformer-small-ctc", "zipformer-ctc-multi", "paraformer-bilingual"
     ]
 
     nonisolated static var selectedStreamingModel: StreamingModel {
@@ -158,13 +139,13 @@ actor ModelManager {
                 if let model = StreamingModel(rawValue: raw) {
                     return model
                 }
-                // Migrate removed Zipformer models
+                // Migrate removed models
                 if removedModelRawValues.contains(raw) {
                     UserDefaults.standard.set(StreamingModel.senseVoiceSmall.rawValue, forKey: selectedModelKey)
                     return .senseVoiceSmall
                 }
             }
-            return .senseVoiceSmall  // default
+            return .senseVoiceSmall
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: selectedModelKey)
@@ -198,11 +179,11 @@ actor ModelManager {
     // MARK: - Query (Streaming Models)
 
     nonisolated func isModelAvailable(_ model: StreamingModel) -> Bool {
-        checkFiles(dir: model.directoryName, files: model.requiredFiles)
+        Self.isSenseVoiceBundled
     }
 
     nonisolated func isSelectedModelAvailable() -> Bool {
-        isModelAvailable(Self.selectedStreamingModel)
+        Self.isSenseVoiceBundled
     }
 
     /// Legacy compatibility — used by RecognitionSession.

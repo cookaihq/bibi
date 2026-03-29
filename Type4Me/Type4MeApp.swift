@@ -185,8 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Start SenseVoice Python server if needed
-        if KeychainService.selectedASRProvider == .sherpa
-            && ModelManager.selectedStreamingModel == .senseVoiceSmall {
+        if KeychainService.selectedASRProvider == .sherpa {
             Task {
                 do {
                     try await SenseVoiceServerManager.shared.start()
