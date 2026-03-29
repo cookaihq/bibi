@@ -89,7 +89,11 @@ def main():
     parser.add_argument("--hotwords-file", default="")
     parser.add_argument("--beam-size", type=int, default=3)
     parser.add_argument("--context-score", type=float, default=6.0)
-    parser.add_argument("--device", default="cpu", help="cpu or mps")
+    parser.add_argument("--device", default="auto", help="auto, cpu, or mps")
+    parser.add_argument("--language", default="auto", help="auto, zh, en, ja, ko, yue")
+    parser.add_argument("--textnorm", action="store_true", default=True, help="Enable ITN (punctuation + number formatting)")
+    parser.add_argument("--no-textnorm", dest="textnorm", action="store_false")
+    parser.add_argument("--padding", type=int, default=16, help="Encoder context padding frames (higher = more accurate, slower)")
     args = parser.parse_args()
 
     global _model
@@ -110,6 +114,9 @@ def main():
         beam_size=args.beam_size,
         context_score=args.context_score,
         device=args.device,
+        language=args.language,
+        textnorm=args.textnorm,
+        padding=args.padding,
     )
     print("Model loaded.", flush=True)
 

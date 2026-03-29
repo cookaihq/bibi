@@ -1113,13 +1113,34 @@ class StreamingSenseVoice:
             yield {"timestamps": times_ms, "text": text}
 
 
-def load_model(model_dir: str, contexts=None, beam_size=3, context_score=6.0, device="cpu"):
-    """Load SenseVoice model and create a StreamingSenseVoice wrapper."""
+def load_model(
+    model_dir: str,
+    contexts=None,
+    beam_size=3,
+    context_score=6.0,
+    device="auto",
+    language="auto",
+    textnorm=True,
+    padding=16,
+):
+    """Load SenseVoice model and create a StreamingSenseVoice wrapper.
+
+    Args:
+        device: "auto" detects MPS (Apple GPU) availability, falls back to CPU.
+    """
+    if device == "auto":
+        import torch
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        print(f"Auto-detected device: {device}", flush=True)
+
     model = StreamingSenseVoice(
         model=model_dir,
         device=device,
         contexts=contexts,
         beam_size=beam_size,
         context_score=context_score,
+        language=language,
+        textnorm=textnorm,
+        padding=padding,
     )
     return model

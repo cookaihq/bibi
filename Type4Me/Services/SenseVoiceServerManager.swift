@@ -78,7 +78,10 @@ actor SenseVoiceServerManager {
                 "--port", "0",
                 "--hotwords-file", hotwordsFile,
                 "--beam-size", "3",
-                "--device", "cpu",
+                "--device", "auto",
+                "--language", "auto",
+                "--textnorm",
+                "--padding", "16",
             ]
         } else {
             proc.executableURL = URL(fileURLWithPath: executable)
@@ -88,7 +91,10 @@ actor SenseVoiceServerManager {
                 "--port", "0",
                 "--hotwords-file", hotwordsFile,
                 "--beam-size", "3",
-                "--device", "cpu",
+                "--device", "auto",
+                "--language", "auto",
+                "--textnorm",
+                "--padding", "16",
             ]
         }
 
