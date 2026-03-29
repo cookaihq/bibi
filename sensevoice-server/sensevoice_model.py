@@ -1111,7 +1111,8 @@ class StreamingSenseVoice:
 
         if not filtered:
             return ""
-        return self.tokenizer.decode(filtered)
+        text = self.tokenizer.decode(filtered)
+        return _clean_punctuation(text)
 
     def get_size(self):
         effective_size = self.cur_idx + 1 - self.padding
@@ -1135,7 +1136,7 @@ class StreamingSenseVoice:
             if len(self.tokenizer.decode(token).strip()) == 0:
                 continue
             times_ms.append(step * 60)
-        return times_ms, self.tokenizer.decode(tokens)
+        return times_ms, _clean_punctuation(self.tokenizer.decode(tokens))
 
     def streaming_inference(self, audio, is_last):
         self.fbank.accept_waveform(audio, is_last)
@@ -1168,6 +1169,23 @@ class StreamingSenseVoice:
                 res = self.decoder.ctc_greedy_search(probs, is_last=is_last)
                 times_ms, text = self.decode(res["times"], res["tokens"])
             yield {"timestamps": times_ms, "text": text}
+
+
+import re
+
+# Punctuation marks (Chinese + English)
+_PUNCT = set('，。！？、；：""''（）…—,。!?;:\'"().-')
+
+def _clean_punctuation(text: str) -> str:
+    """Remove consecutive duplicate punctuation and fix common artifacts."""
+    if not text:
+        return text
+    # Remove consecutive punctuation where first is a comma-like and second is a period-like
+    # e.g. "，。" → "。"  "，！" → "！"  ",." → "."
+    text = re.sub(r'[,，、;；][。.!！?？]', lambda m: m.group()[-1], text)
+    # Remove exact duplicate punctuation: "。。" → "。", "，，" → "，"
+    text = re.sub(r'([，。！？、；：,\.!?;:])\1+', r'\1', text)
+    return text
 
 
 def load_model(
