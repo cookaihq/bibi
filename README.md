@@ -54,20 +54,15 @@ macOS 14+ (Sonoma)
 ### 本地语音识别 (SenseVoice)
 
 基于阿里 [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) 开源模型，**所有识别完全在设备端完成**，无需申请 API Key、无需注册云服务账号、无网络依赖。
-
-- 支持中文、英文混合识别
 - 两阶段识别：说话时实时显示文字，松手后自动校正提高准确率
-- 自动标点符号和数字格式化
 - 支持热词加权（中文词和英文单词）
 - 下载完整版 DMG 即可开箱使用，无需额外配置
 
-### 云端流式识别
+### 云端流式识别（需自备API Key）
+接入火山引擎（豆包）\OpenAi\Deepgram\AssemblyAI\Soniox\阿里云百炼\百度智能云，边说边出字。性能模式下还支持双通道识别，实时识别结束后用完整录音优化结果。
+欢迎共建接入其他厂商的模型，豆包现在注册送20-40小时识别，[配置指引](https://my.feishu.cn/wiki/QdEnwBMfUi0mN4k3ucMcNYhUnXr)）
 
-接入火山引擎（豆包）大模型，边说边出字。性能模式下还支持双通道识别，实时识别结束后用完整录音优化结果。
-欢迎共建接入其他厂商的模型，目前已经接入火山引擎和 Deepgram。
-（豆包现在注册送20小时识别，[配置指引](https://my.feishu.cn/wiki/QdEnwBMfUi0mN4k3ucMcNYhUnXr)）
-
-### 自定义处理模式
+### 自定义处理模式（需配置LLM API Key）
 
 内置 5 种模式，也可以自定义任意多个：
 
