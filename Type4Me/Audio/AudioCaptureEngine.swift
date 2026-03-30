@@ -167,13 +167,13 @@ final class AudioCaptureEngine: NSObject, @unchecked Sendable, AVCaptureAudioDat
         }
         output?.setSampleBufferDelegate(nil, queue: nil)
         captureSession = nil
+        flushRemaining()
         bufferLock.lock()
         converter = nil
         onAudioChunk = nil
         onAudioLevel = nil
         bufferLock.unlock()
         levelCounter = 0
-        flushRemaining()
         NSLog("[Audio] Capture session stopped")
     }
 
