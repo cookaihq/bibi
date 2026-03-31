@@ -1,3 +1,5 @@
+> 当前仓库是基于 [joewongjc/type4me](https://github.com/joewongjc/type4me) 的二次开发版本。`upstream-main` 用于同步上游代码，`main` 用于承载当前仓库的持续定制。
+
 > update：官方[词库管理Skill](https://github.com/joewongjc/type4me-vocab-skill)，帮你大幅提高识别准确率
 
 <p align="center">
