@@ -1,19 +1,17 @@
+> update：官方[词库管理Skill](https://github.com/joewongjc/type4me-vocab-skill)，帮你大幅提高识别准确率
+
 <p align="center">
   <img src="docs/images/header-combined.svg" width="840" alt="Type4Me - macOS 语音输入法" />
 </p>
 
-> update：官方[词库管理Skill](https://github.com/joewongjc/type4me-vocab-skill)，帮你大幅提高识别准确率
-
-# MacOS语音输入法
 
 - **语音识别**：内置本地识别引擎、媲美云端引擎准确率；支持多家云端引擎厂商；支持流式识别、边说边出字，说完无需等待、快速输入；
 - **文本处理**：内置润色、Prompt优化、翻译功能，可自定义添加任意处理模版（比如改人设、改语气、小语种翻译等等）；
 - **模型接入**：支持主流厂商API接入；文本处理支持使用Ollama接本地模型；
 - **词汇管理**：支持热词、映射词，2种模式。热词用于校正语音识别引擎，映射词可作为兜底或个性化场景使用（如 Web coding -> Vibe Coding, "我的邮箱地址" -> xxx@gmail.com）；
 - **历史记录**：存储所有历史识别记录，包括原始文本和处理后文本，支持导出CSV；
-- **配套Skill**：真正做到100%准确率，打造只属于你的输入法，[点这里安装Skill](https://github.com/joewongjc/type4me-vocab-skill)后跟你的agent说"Qwen3.5 不要识别成 Queen 3.5"，他就能自动帮你管理热词和映射词，同类错误不再犯  
+- **配套Skill**：真正做到100%准确率，打造只属于你的输入法，[点这里安装Skill](https://github.com/joewongjc/type4me-vocab-skill)后跟你的agent说"Qwen3.5 不要识别成 Queen 3.5"，他就能自动帮你管理热词和映射词，同类错误不再犯 
 
-<img src="https://github.com/user-attachments/assets/9f692cdd-1b08-41d5-9381-386868a80a40" width="400" />
 
 
 ## 界面预览
